@@ -18,6 +18,6 @@ def load_config():
     return {
         "SQLALCHEMY_DATABASE_URI": db_uri,
         "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-        "SECRET_KEY": os.getenv("SECRET_KEY", "fallback-secret"),
+        "SECRET_KEY": os.getenv("SECRET_KEY", "fallback-secret"),  # ⭐ 全局密钥
         "JSON_AS_ASCII": False,
     }

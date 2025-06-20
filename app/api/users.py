@@ -6,14 +6,17 @@ from utils.pagination import paginate
 from app.schemas.user_schema import UserSchema, load_and_validate
 from app.services.user_service import create_user, update_user_info, delete_user_by_id
 
+
 user_bp = Blueprint('user', __name__, url_prefix='/api')
 
 # 创建用户
 @user_bp.route('/user/register', methods=['POST'])
 def register():
     try:
+        
         data = load_and_validate(UserSchema(), request.get_json())
     except ValueError as e:
+        
         return error_response(str(e))
 
     try:

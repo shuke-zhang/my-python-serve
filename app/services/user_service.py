@@ -1,5 +1,6 @@
 from app.models.user import User
 from app.models import db
+from werkzeug.security import generate_password_hash
 
 def create_user(data):
     max_user = db.session.query(User.user_id).order_by(User.user_id.desc()).first()
@@ -8,7 +9,7 @@ def create_user(data):
     new_user = User(
         user_id=next_user_id,
         name=data["name"],
-        password=data["password"],
+        password= generate_password_hash(data['password'])  ,
         nick_name=data.get("nick_name"),
         email=data.get("email"),
         phone=data.get("phone"),

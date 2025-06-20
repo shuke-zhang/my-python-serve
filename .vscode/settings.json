@@ -1,0 +1,13 @@
+{
+    "cSpell.words": [
+        "autoflush",
+        "dotenv",
+        "jsonify",
+        "mydb",
+        "pymysql",
+        "sessionmaker",
+        "sqlalchemy",
+        "venv",
+        "zhangenjian"
+    ]
+}

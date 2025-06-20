@@ -1,30 +1,38 @@
-from flask import Blueprint, request
-from app.models.user import User
-from app.models import db
-from utils.response import success_response, error_response
-from werkzeug.security import check_password_hash
+import jwt
+import datetime
+from flask import request, current_app, g
+from functools import wraps
+from utils.response import error_response
 
-auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    name = data.get('name')
-    password = data.get('password')
+def generate_token(user_id, expire_minutes=60):
+    payload = {
+        "user_id": user_id,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=expire_minutes)
+    }
+    secret = current_app.config.get("SECRET_KEY", "fallback-secret")
+    return jwt.encode(payload, secret, algorithm="HS256")
 
-    if not name or not password:
-        return error_response("用户名或密码不能为空")
 
-    user = User.query.filter_by(name=name).first()
-    if not user:
-        return error_response("用户不存在")
+def decode_token(token):
+    secret = current_app.config["SECRET_KEY"]
+    return jwt.decode(token, secret, algorithms=["HS256"])
 
-    if not check_password_hash(user.password, password):
-        return error_response("密码错误")
 
-    # 此处可返回 token 或用户信息（未集成 JWT 就简单返回 user info）
-    return success_response({
-        "id": user.id,
-        "name": user.name,
-        "nick_name": user.nick_name
-    }, msg="登录成功")
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].replace("Bearer ", "")
+        if not token:
+            return error_response("未登录或缺少 token", code=401)
+        try:
+            payload = decode_token(token)
+            g.current_user = payload["user_id"]
+        except jwt.ExpiredSignatureError:
+            return error_response("登录过期", code=401)
+        except jwt.InvalidTokenError:
+            return error_response("无效 token", code=401)
+        return f(*args, **kwargs)
+    return decorated

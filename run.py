@@ -73,7 +73,7 @@ def _safe_handlers(socketio) -> dict:
         return handlers
     except Exception:
         return {}
-def print_socketio_map(socketio, console, host: str = "127.0.0.1", port: int = 5000, https: bool = False, path: str = "/socket.io") -> None:
+def print_socketio_map(socketio, console, host: str = "0.0.0.0", port: int = 5000, https: bool = False, path: str = "/socket.io") -> None:
     base = _build_base_url(host, port, https)
     handlers = _safe_handlers(socketio)
     if not handlers:
@@ -112,7 +112,7 @@ def _quiet_werkzeug_banner() -> None:
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
 def _guess_lan_ip() -> str:
-    ip = "127.0.0.1"
+    ip = "0.0.0.0"
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -126,7 +126,7 @@ def _guess_lan_ip() -> str:
     return ip
 
 if __name__ == "__main__":
-    host = os.getenv("HOST", "127.0.0.1")
+    host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "5000"))
     debug = os.getenv("FLASK_DEBUG", "1") == "1"
     https = False  # 若你在 Nginx/TLS 反代后，可改 True 仅用于输出展示

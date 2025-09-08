@@ -4,7 +4,7 @@ from flask_jwt_extended import decode_token
 from jwt import ExpiredSignatureError, InvalidTokenError
 from utils.response import error_response
 
-WHITE_LIST = {"/api/login", "/api/user/register"}
+WHITE_LIST = { "/api/user/register"}
 
 def jwt_global_auth():
     # 白名单放行

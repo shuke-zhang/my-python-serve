@@ -3,12 +3,18 @@ import os
 import sys
 import platform
 import socket
+from app import socketio
 from datetime import datetime
+from typing import Iterable
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich import box
+from rich.table import Table
+from rich import box
+import eventlet
+eventlet.monkey_patch()
 # 兼容你的工程：既支持 from app import app，也支持工厂函数 create_app()
 try:
     from app import app  # Flask 实例
@@ -56,6 +62,50 @@ def _print_routes() -> None:
     if len(table.rows) > 0:
         console.print(table)
 
+def _build_base_url(host: str, port: int, https: bool) -> str:
+    scheme = "https" if https else "http"
+    return f"{scheme}://{host}:{port}"
+
+def _safe_handlers(socketio) -> dict:
+    try:
+        server = socketio.server
+        handlers = getattr(server, "handlers", {}) or {}
+        return handlers
+    except Exception:
+        return {}
+def print_socketio_map(socketio, console, host: str = "127.0.0.1", port: int = 5000, https: bool = False, path: str = "/socket.io") -> None:
+    base = _build_base_url(host, port, https)
+    handlers = _safe_handlers(socketio)
+    if not handlers:
+        console.print("未发现 Socket.IO 事件", style="dim")
+        return
+    table = Table(
+        title="🧩 Socket.IO 事件一览（前端可直接调用）",
+        box=box.SIMPLE_HEAVY,
+        header_style="bold cyan",
+        expand=True
+    )
+    table.add_column("命名空间", no_wrap=True)
+    table.add_column("连接地址（前端 io(...) 用）", no_wrap=False, overflow="fold", ratio=2)
+    table.add_column("可用事件（emit）", no_wrap=False, overflow="fold", ratio=1)
+    namespaces: Iterable[str] = sorted(handlers.keys(), key=lambda x: x or "/")
+    for ns in namespaces:
+        evmap = handlers.get(ns, {}) or {}
+        events = sorted(e for e in evmap.keys() if e not in ("connect", "disconnect"))
+        ns_suffix = "" if (ns in ("/", "", None)) else ns
+        connect_url = f'{base}{ns_suffix}'
+        connect_str = f'io("{connect_url}", {{ path: "{path}", transports: ["websocket"], reconnection: true }})'
+        table.add_row(
+            ns or "/",
+            Text(connect_str, overflow="fold", no_wrap=False),
+            Text(", ".join(events) or "—", overflow="fold", no_wrap=False)
+        )
+    console.print(table)
+    for ns in namespaces:
+        ns_suffix = "" if (ns in ("/", "", None)) else ns
+        connect_url = f'{base}{ns_suffix}'
+       
+    console.print(Text(f"Engine.IO 入口：{path}", style="dim"))
 def _quiet_werkzeug_banner() -> None:
     # 可选：降低 werkzeug 启动横幅与请求日志的噪音；想完全保留就注释掉
     import logging
@@ -87,6 +137,7 @@ if __name__ == "__main__":
         _quiet_werkzeug_banner()
         _print_banner(host, port, debug, https)
         _print_routes()
+        print_socketio_map(socketio, console)
         console.print("🔧 按 Ctrl+C 退出\n", style="dim")
 
     # 启动开发服务器
